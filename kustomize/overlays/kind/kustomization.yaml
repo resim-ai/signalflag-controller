@@ -1,4 +1,5 @@
-# For Kind clusters: runs the controller image from the local registry that ReSim's controller tests push to.
+# For Kind clusters: runs the controller image that ReSim's controller tests build and load into the
+# cluster.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

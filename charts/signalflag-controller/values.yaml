@@ -47,5 +47,7 @@ poolHandler:
 # object of that kind, so deleting the Pool CRD would delete every pool and its namespace.
 protectCRDs:
   enabled: true
-  # Also refuse deletes of every CRD at once, such as kubectl delete crd --all, which would include these.
+  # Also refuse a request that deletes every CRD in the cluster at once, a deletecollection, which would
+  # include these. kubectl delete crd --all sends one delete per CRD, so it isn't affected: it deletes the
+  # others and these are refused.
   blockBulkDelete: true

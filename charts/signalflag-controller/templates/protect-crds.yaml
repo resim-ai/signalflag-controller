@@ -18,15 +18,16 @@ spec:
         operations: [DELETE]
         resources: [customresourcedefinitions]
   validations:
+    # A collection delete removes every CRD, these included. Its request has no name field at all, rather
+    # than an empty one, so the expressions test for the field: reading a missing field is an error.
     {{- if .Values.protectCRDs.blockBulkDelete }}
-    # A delete with no name removes every CRD, these included.
-    - expression: "!(request.name.endsWith('.respawn.resim.io') || request.name == '')"
+    - expression: "has(request.name) && !request.name.endsWith('.respawn.resim.io')"
     {{- else }}
-    - expression: "!request.name.endsWith('.respawn.resim.io')"
+    - expression: "!has(request.name) || !request.name.endsWith('.respawn.resim.io')"
     {{- end }}
       reason: Forbidden
       messageExpression: >-
-        request.name == ''
+        !has(request.name)
           ? 'Deleting every CustomResourceDefinition at once is blocked on this cluster, because it would delete the respawn.resim.io CRDs, every pool, and every pool namespace.'
           : 'Deleting CRD ' + request.name + ' is blocked: it would delete every object of that kind, and every pool namespace. To do it on purpose, delete the respawn-protect-crds ValidatingAdmissionPolicyBinding first.'
 ---
