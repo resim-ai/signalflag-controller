@@ -45,6 +45,15 @@ crd_delete_refused() {
   ! kubectl delete crd pools.respawn.resim.io --dry-run=server
 }
 
+# A deletecollection, which kubectl only sends through --raw. The policy names it in its message.
+bulk_crd_delete_refused() {
+  local out
+  if out=$(kubectl delete --raw "/apis/apiextensions.k8s.io/v1/customresourcedefinitions?dryRun=All" 2>&1); then
+    return 1
+  fi
+  [[ ${out} == *"Deleting every CustomResourceDefinition at once is blocked"* ]]
+}
+
 pool_ready() {
   [[ $(kubectl get pool smoke -o jsonpath='{.status.conditions[?(@.type=="PoolReady")].status}') == True ]]
 }
@@ -59,6 +68,7 @@ kubectl wait --for condition=established --timeout=60s \
   crd/pools.respawn.resim.io crd/poolhandlers.respawn.resim.io crd/batches.respawn.resim.io
 
 eventually "the API server refuses to delete the Pool CRD" crd_delete_refused
+eventually "the API server refuses to delete every CRD at once" bulk_crd_delete_refused
 
 # The controller binds the shipped roles and nothing else, and reads Secrets only in its own namespace.
 expect yes bind clusterrole/resim-pool-worker --as "${controller}"
