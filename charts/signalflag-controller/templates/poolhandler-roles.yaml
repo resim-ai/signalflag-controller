@@ -1,0 +1,45 @@
+{{- /*
+The permissions of every PoolHandler's ServiceAccount. The controller binds resim-poolhandler-discovery
+cluster-wide, and resim-poolhandler-workload only in the namespaces of the pools a handler serves. They follow
+what ReSim's scheduler needs to run workers, without its Karpenter, security group, RBAC, namespace creation and
+ServiceAccount grants. They're provisional until the PoolHandler service's design is final.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: resim-poolhandler-discovery
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [respawn.resim.io]
+    resources: [pools]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: resim-poolhandler-workload
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [respawn.resim.io]
+    resources: [batches]
+    verbs: [get, list, watch, create, delete]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, delete]
+  - apiGroups: [""]
+    resources: [secrets, configmaps]
+    verbs: [get, list, create, update, delete]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: ["", events.k8s.io]
+    resources: [events]
+    verbs: [get, list, watch, create, update, patch]

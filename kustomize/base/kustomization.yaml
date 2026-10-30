@@ -1,0 +1,7 @@
+# The chart rendered with its default values, in the respawn-system namespace. To change a setting, patch it in an
+# overlay. Run make kustomize to regenerate signalflag-controller.yaml after changing the chart.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - signalflag-controller.yaml

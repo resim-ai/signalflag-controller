@@ -1,0 +1,10 @@
+# For Kind clusters: runs the controller image that ReSim's controller tests build and load into the
+# cluster.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: public.ecr.aws/resim/signalflag-controller
+    newName: localhost:5001/respawn-remote
+    newTag: e2e
