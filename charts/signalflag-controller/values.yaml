@@ -1,0 +1,51 @@
+# The ReSim environments this cluster runs pools for. Most clusters need only prod. The chart ships one
+# resim-worker-<environment> ClusterRole for each, and lets the controller bind those roles and no others.
+# A Pool whose spec.environment isn't listed here waits until it is.
+environments:
+  - prod
+
+controller:
+  image:
+    repository: public.ecr.aws/resim/signalflag-controller
+    # Defaults to the chart's appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  # Leader election keeps one replica active, so a second replica only shortens failover.
+  replicas: 1
+  # The maximum number of objects each controller reconciles at once.
+  concurrency: 10
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# A PoolHandler polls ReSim for its pools' work and launches the workers. The chart can create one, which serves
+# every Pool whose spec.handler is its name.
+#
+# Kubernetes can't create a PoolHandler until its CRD exists, so on a first install leave this off and turn it
+# on with helm upgrade, or create the PoolHandler yourself.
+poolHandler:
+  enabled: false
+  name: default
+  # The PoolHandler service's image. Required when enabled.
+  image: ""
+  # The ReSim worker API URL. Required when enabled.
+  workerAPIURL: ""
+  # The Secret, in the release namespace, that holds the PoolHandler's ReSim API credentials.
+  credentialsSecretName: resim-api-credentials
+  replicas: 1
+  resources: {}
+
+# A ValidatingAdmissionPolicy that refuses to delete the respawn.resim.io CRDs. Deleting a CRD deletes every
+# object of that kind, so deleting the Pool CRD would delete every pool and its namespace.
+protectCRDs:
+  enabled: true
+  # Also refuse deletes of every CRD at once, such as kubectl delete crd --all, which would include these.
+  blockBulkDelete: true

@@ -1,0 +1,52 @@
+{{- /*
+The controller's own permissions, generated from the controller source: a ClusterRole for pools and their
+objects, and a Role in the release namespace for its Deployments, credential Secrets and leader election.
+*/}}
+{{- $clusterRole := "" }}
+{{- $role := "" }}
+{{- range $obj := include "signalflag-controller.generated" (list $ "generated/rbac/role.yaml") | fromYamlArray }}
+{{- if eq $obj.kind "ClusterRole" }}
+{{- $clusterRole = $obj.metadata.name }}
+{{- else if eq $obj.kind "Role" }}
+{{- $role = $obj.metadata.name }}
+{{- $_ := set $obj.metadata "namespace" $.Release.Namespace }}
+{{- else }}
+{{- fail (printf "generated/rbac/role.yaml: unexpected kind %s" $obj.kind) }}
+{{- end }}
+---
+{{ toYaml $obj }}
+{{- end }}
+{{- if not (and $clusterRole $role) }}
+{{- fail "generated/rbac/role.yaml must hold one ClusterRole and one Role" }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "signalflag-controller.name" . }}
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $clusterRole }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "signalflag-controller.name" . }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "signalflag-controller.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $role }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "signalflag-controller.name" . }}
+    namespace: {{ .Release.Namespace }}

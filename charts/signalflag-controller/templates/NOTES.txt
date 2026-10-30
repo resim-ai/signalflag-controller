@@ -1,0 +1,12 @@
+The SignalFlag controller is running in the {{ .Release.Namespace }} namespace, for the environments {{ join ", " .Values.environments }}.
+
+To add a pool, create a Pool with your ReSim org, environment and pool label, and the IAM roles for its worker
+and customer ServiceAccounts:
+
+  kubectl apply -f my-pool.yaml
+  kubectl get pools
+{{- if not .Values.poolHandler.enabled }}
+
+No PoolHandler is configured, so no pool picks up work yet. Create the credentials Secret, then set
+poolHandler.enabled=true with helm upgrade, or create a PoolHandler yourself.
+{{- end }}

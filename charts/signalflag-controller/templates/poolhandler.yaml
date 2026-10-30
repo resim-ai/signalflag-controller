@@ -1,0 +1,18 @@
+{{- if .Values.poolHandler.enabled }}
+apiVersion: respawn.resim.io/v2alpha1
+kind: PoolHandler
+metadata:
+  name: {{ .Values.poolHandler.name }}
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+spec:
+  image: {{ required "poolHandler.image is required when poolHandler.enabled is true" .Values.poolHandler.image | quote }}
+  workerAPIURL: {{ required "poolHandler.workerAPIURL is required when poolHandler.enabled is true" .Values.poolHandler.workerAPIURL | quote }}
+  credentialsSecretRef:
+    name: {{ .Values.poolHandler.credentialsSecretName }}
+  replicas: {{ .Values.poolHandler.replicas }}
+  {{- with .Values.poolHandler.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
