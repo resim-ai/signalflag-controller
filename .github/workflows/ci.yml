@@ -1,0 +1,94 @@
+name: CI
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # make kustomize renders with this Helm version, so make check needs it too.
+  HELM_VERSION: v4.3.1
+  KUSTOMIZE_VERSION: v5.8.1
+  KUSTOMIZE_SHA256: 029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d
+
+jobs:
+  lint:
+    name: Lint (Helm ${{ matrix.helm }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Customers install with either major version.
+        helm: [v3.19.0, v4.3.1]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310  # v5.0.1
+        with:
+          version: ${{ matrix.helm }}
+      - run: make lint
+
+  render:
+    name: Kustomize matches the chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310  # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: Install Kustomize
+        run: |
+          curl -fsSLo kustomize.tar.gz \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum --check
+          tar -xzf kustomize.tar.gz -C /usr/local/bin kustomize
+          rm kustomize.tar.gz
+      - run: make check
+      - run: make build
+
+  kind:
+    name: Kind install (Kubernetes ${{ matrix.kubernetes }})
+    needs: [lint, render]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest Kubernetes the chart supports, and the newest Kind ships.
+          - kubernetes: "1.30"
+            kind: v0.29.0
+            node: kindest/node:v1.30.13@sha256:397209b3d947d154f6641f2d0ce8d473732bd91c87d9575ade99049aa33cd648
+          - kubernetes: "1.37"
+            kind: v0.33.0
+            node: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310  # v5.0.1
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc  # v1
+        with:
+          version: ${{ matrix.kind }}
+          node_image: ${{ matrix.node }}
+      # The controller checks need a published image. Until the first controller release, appVersion is 0.0.0
+      # and the script checks only what the API server accepts.
+      - name: Smoke test
+        run: |
+          if grep -q '^appVersion: "0.0.0"$' charts/signalflag-controller/Chart.yaml; then
+            export CHECK_CONTROLLER=false
+          else
+            export CHECK_CONTROLLER=true
+          fi
+          hack/kind-smoke.sh
