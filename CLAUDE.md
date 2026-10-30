@@ -26,17 +26,16 @@ GitHub CLI: `git push -u origin <branch>`, then `gh pr create`; stack a large ch
 
 ## Testing conventions
 
-There are no unit tests. Render a change with `helm template` and read the diff, then install it in a Kind cluster with the controller image:
+There are no unit tests. CI (`.github/workflows/ci.yml`) lints the chart with Helm 3 and 4, checks `kustomize/base` matches the chart, and runs `hack/kind-smoke.sh` on Kind clusters at Kubernetes 1.30 and 1.37.
+
+`hack/kind-smoke.sh` installs the chart in the current kubectl context, checks the CRD protection and the controller's permissions, then uninstalls it. With `CHECK_CONTROLLER=true` it also checks a Pool converges and what its ServiceAccounts can do. That needs a controller image, so CI turns it on only once `appVersion` names a released one. To run it locally with an image built from `rerun`:
 
 ```sh
 KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name sfc
-kind load image-archive respawn-remote.tar --name sfc   # an image built from rerun
-kubectl create namespace respawn-system
-helm install sfc charts/signalflag-controller -n respawn-system \
-  --set controller.image.repository=<image> --set controller.image.tag=<tag>
+kind load image-archive respawn-remote.tar --name sfc
+CHECK_CONTROLLER=true hack/kind-smoke.sh \
+  --set controller.image.repository=<image> --set controller.image.tag=<tag> --set controller.image.pullPolicy=Never
 ```
-
-Then create a `Pool` and check it becomes ready, and that `kubectl auth can-i --as=system:serviceaccount:<pool>:worker` gives the worker only what it needs.
 
 ## Gotchas
 
@@ -52,7 +51,8 @@ Then create a `Pool` and check it becomes ready, and that `kubectl auth can-i --
 - `charts/signalflag-controller/`: the chart. `templates/` holds the templates, `generated/` the files copied from `rerun`, and `values.schema.json` validates `values.yaml`.
 - `kustomize/base/`: the chart rendered with its default values, in `respawn-system`. Don't edit `signalflag-controller.yaml` by hand.
 - `kustomize/overlays/kind/`: points the controller at the local registry that `rerun`'s Kind tests push to.
-- `.github/`: CODEOWNERS.
+- `hack/kind-smoke.sh`: the install test CI runs on Kind.
+- `.github/`: CODEOWNERS and the CI workflow.
 
 <!-- resim-shared:begin writing-conventions (managed by the resim-shared plugin: edit defaults/claude-md/writing-conventions.md in resim-ai/workspace; its sync-shared-defaults workflow rewrites this copy) -->
 
