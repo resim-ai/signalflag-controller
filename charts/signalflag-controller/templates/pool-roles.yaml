@@ -1,0 +1,50 @@
+{{- /*
+The permissions of each pool's ServiceAccounts, generated from the controller source. A Pool binds
+resim-pool-worker and resim-pool-customer in its own namespace, and binds its worker ServiceAccount to the
+resim-worker-<environment> ClusterRole for its environment. The controller can bind these roles but doesn't hold
+their permissions, so it can never grant more than this chart ships.
+*/}}
+{{- range $obj := include "signalflag-controller.generated" (list $ "generated/rbac/pool_roles.yaml") | fromYamlArray }}
+---
+{{ toYaml $obj }}
+{{- end }}
+{{- $workerNames := list }}
+{{- range $template := include "signalflag-controller.generated" (list $ "generated/rbac/worker_cluster_role.yaml") | fromYamlArray }}
+{{- range $environment := $.Values.environments }}
+{{- $role := deepCopy $template }}
+{{- $name := printf "resim-worker-%s" $environment }}
+{{- $_ := set $role.metadata "name" $name }}
+{{- $workerNames = append $workerNames $name }}
+---
+{{ toYaml $role }}
+{{- end }}
+{{- end }}
+---
+# Lets the controller bind each resim-worker-<environment> ClusterRole above, and no other.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "signalflag-controller.name" . }}-bind-workers
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles]
+    verbs: [bind]
+    resourceNames:
+      {{- toYaml $workerNames | nindent 6 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "signalflag-controller.name" . }}-bind-workers
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "signalflag-controller.name" . }}-bind-workers
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "signalflag-controller.name" . }}
+    namespace: {{ .Release.Namespace }}

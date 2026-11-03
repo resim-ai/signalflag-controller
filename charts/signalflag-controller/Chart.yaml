@@ -1,0 +1,13 @@
+apiVersion: v2
+name: signalflag-controller
+description: Runs SignalFlag workers in your own Kubernetes cluster, in namespaces called pools.
+type: application
+# The chart's version. Bump it with every change to the chart.
+version: 0.1.0
+# The controller's version, and the default image tag. Each controller release sets it, along with the files
+# under generated/.
+appVersion: "0.0.0"
+kubeVersion: ">=1.30.0-0"
+home: https://github.com/resim-ai/signalflag-controller
+sources:
+  - https://github.com/resim-ai/signalflag-controller
