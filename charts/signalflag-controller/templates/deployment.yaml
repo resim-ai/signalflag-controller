@@ -37,7 +37,7 @@ spec:
             - --health-probe-bind-address=:8081
             - --controller-concurrency={{ .Values.controller.concurrency }}
           env:
-            # The controller runs PoolHandlers and reads their credentials in its own namespace.
+            # The controller runs Harbormasters and reads their credentials in its own namespace.
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

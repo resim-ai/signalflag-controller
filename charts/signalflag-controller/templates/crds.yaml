@@ -1,6 +1,6 @@
 {{- /*
-The Pool and PoolHandler CRDs. They're templates, not files under crds/, so helm upgrade updates them. Helm keeps
-them on uninstall: deleting a CRD deletes every object of its kind, and every pool's namespace with them.
+The Berth and Harbormaster CRDs. They're templates, not files under crds/, so helm upgrade updates them. Helm keeps
+them on uninstall: deleting a CRD deletes every object of its kind, and every berth's namespace with them.
 */}}
 {{- range $path, $_ := .Files.Glob "generated/crd/*.yaml" }}
 {{- range $crd := include "signalflag-controller.generated" (list $ $path) | fromYamlArray }}

@@ -1,0 +1,18 @@
+{{- if .Values.harbormaster.enabled }}
+apiVersion: respawn.resim.io/v2alpha1
+kind: Harbormaster
+metadata:
+  name: {{ .Values.harbormaster.name }}
+  labels:
+    {{- include "signalflag-controller.labels" . | nindent 4 }}
+spec:
+  image: {{ required "harbormaster.image is required when harbormaster.enabled is true" .Values.harbormaster.image | quote }}
+  workerAPIURL: {{ required "harbormaster.workerAPIURL is required when harbormaster.enabled is true" .Values.harbormaster.workerAPIURL | quote }}
+  credentialsSecretRef:
+    name: {{ .Values.harbormaster.credentialsSecretName }}
+  replicas: {{ .Values.harbormaster.replicas }}
+  {{- with .Values.harbormaster.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

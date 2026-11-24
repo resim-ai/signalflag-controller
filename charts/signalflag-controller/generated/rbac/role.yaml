@@ -68,10 +68,10 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resourceNames:
-  - resim-pool-customer
-  - resim-pool-worker
-  - resim-poolhandler-discovery
-  - resim-poolhandler-workload
+  - resim-berth-customer
+  - resim-berth-worker
+  - resim-harbormaster-discovery
+  - resim-harbormaster-workload
   resources:
   - clusterroles
   verbs:
@@ -92,8 +92,8 @@ rules:
   - respawn.resim.io
   resources:
   - batches
-  - poolhandlers
-  - pools
+  - berths
+  - harbormasters
   verbs:
   - get
   - list
@@ -110,8 +110,8 @@ rules:
   - respawn.resim.io
   resources:
   - batches/status
-  - poolhandlers/status
-  - pools/status
+  - berths/status
+  - harbormasters/status
   verbs:
   - get
   - patch

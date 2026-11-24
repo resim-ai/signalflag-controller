@@ -4,21 +4,21 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: poolhandlers.respawn.resim.io
+  name: harbormasters.respawn.resim.io
 spec:
   group: respawn.resim.io
   names:
-    kind: PoolHandler
-    listKind: PoolHandlerList
-    plural: poolhandlers
-    singular: poolhandler
+    kind: Harbormaster
+    listKind: HarbormasterList
+    plural: harbormasters
+    singular: harbormaster
   scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.image
       name: Image
       type: string
-    - jsonPath: .status.conditions[?(@.type=="PoolHandlerReady")].status
+    - jsonPath: .status.conditions[?(@.type=="HarbormasterReady")].status
       name: Ready
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -28,10 +28,10 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          PoolHandler runs the in-cluster service that polls ReSim's worker API for
-          its Pools' work and launches the workers. respawn creates its Deployment and
+          Harbormaster runs the in-cluster service that polls ReSim's worker API for
+          its Berths' work and launches the workers. respawn creates its Deployment and
           ServiceAccount in the operator's namespace, and binds the ServiceAccount to
-          the install bundle's PoolHandler roles in each Pool namespace it serves.
+          the install bundle's Harbormaster roles in each Berth namespace it serves.
         properties:
           apiVersion:
             description: |-
@@ -51,12 +51,12 @@ spec:
           metadata:
             type: object
           spec:
-            description: PoolHandlerSpec defines the desired state of a PoolHandler.
+            description: HarbormasterSpec defines the desired state of a Harbormaster.
             properties:
               credentialsSecretRef:
                 description: |-
                   CredentialsSecretRef names the Secret, in the operator's namespace, that
-                  holds the handler's ReSim API credential. The customer creates the
+                  holds the harbormaster's ReSim API credential. The customer creates the
                   Secret; respawn mounts it but never creates or changes it.
                 properties:
                   name:
@@ -71,18 +71,18 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               image:
-                description: Image is the PoolHandler container image.
+                description: Image is the Harbormaster container image.
                 minLength: 1
                 type: string
               replicas:
                 default: 1
-                description: Replicas is the number of handler pods. Zero pauses the
-                  handler.
+                description: Replicas is the number of harbormaster pods. Zero pauses
+                  the harbormaster.
                 format: int32
                 minimum: 0
                 type: integer
               resources:
-                description: Resources are the handler container's compute resources.
+                description: Resources are the harbormaster container's compute resources.
                 properties:
                   claims:
                     description: |-
@@ -142,9 +142,9 @@ spec:
                 type: object
               selector:
                 description: |-
-                  Selector picks the Pools this handler serves, by their labels. When it
-                  is empty, the handler serves the Pools whose spec.handler names it, which
-                  respawn labels resim.io/handler=<this handler's name>.
+                  Selector picks the Berths this harbormaster serves, by their labels. When it
+                  is empty, the harbormaster serves the Berths whose spec.harbormaster names it, which
+                  respawn labels resim.io/harbormaster=<this harbormaster's name>.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -190,8 +190,8 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               workerAPIURL:
-                description: WorkerAPIURL is the ReSim worker API the handler polls
-                  for work.
+                description: WorkerAPIURL is the ReSim worker API the harbormaster
+                  polls for work.
                 pattern: ^https?://
                 type: string
             required:
@@ -200,10 +200,10 @@ spec:
             - workerAPIURL
             type: object
           status:
-            description: PoolHandlerStatus defines the observed state of a PoolHandler.
+            description: HarbormasterStatus defines the observed state of a Harbormaster.
             properties:
               conditions:
-                description: Conditions store the status conditions of the PoolHandler.
+                description: Conditions store the status conditions of the Harbormaster.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -259,8 +259,8 @@ spec:
                   - type
                   type: object
                 type: array
-              observedPools:
-                description: ObservedPools lists the Pools the handler serves.
+              observedBerths:
+                description: ObservedBerths lists the Berths the harbormaster serves.
                 items:
                   type: string
                 type: array
@@ -269,7 +269,7 @@ spec:
                   type: string
                 default: {}
                 description: |-
-                  Resources names the objects respawn created for the handler, such as its
+                  Resources names the objects respawn created for the harbormaster, such as its
                   Deployment and ServiceAccount.
                 type: object
             required:
@@ -280,10 +280,10 @@ spec:
         - spec
         type: object
         x-kubernetes-validations:
-        - message: metadata.name must be a DNS-1123 label of at most 51 characters,
-            so the handler's Deployment name, poolhandler-<name>, is a valid label
-            value
-          rule: self.metadata.name.size() <= 51 && self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+        - message: metadata.name must be a DNS-1123 label of at most 50 characters,
+            so the harbormaster's Deployment name, harbormaster-<name>, is a valid
+            label value
+          rule: self.metadata.name.size() <= 50 && self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
     served: true
     storage: true
     subresources:

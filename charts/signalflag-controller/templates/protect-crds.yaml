@@ -28,8 +28,8 @@ spec:
       reason: Forbidden
       messageExpression: >-
         !has(request.name)
-          ? 'Deleting every CustomResourceDefinition at once is blocked on this cluster, because it would delete the respawn.resim.io CRDs, every pool, and every pool namespace.'
-          : 'Deleting CRD ' + request.name + ' is blocked: it would delete every object of that kind, and every pool namespace. To do it on purpose, delete the respawn-protect-crds ValidatingAdmissionPolicyBinding first.'
+          ? 'Deleting every CustomResourceDefinition at once is blocked on this cluster, because it would delete the respawn.resim.io CRDs, every berth, and every berth namespace.'
+          : 'Deleting CRD ' + request.name + ' is blocked: it would delete every object of that kind, and every berth namespace. To do it on purpose, delete the respawn-protect-crds ValidatingAdmissionPolicyBinding first.'
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

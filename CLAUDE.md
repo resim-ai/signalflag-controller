@@ -8,7 +8,7 @@ This repository is public. Customers can read everything in it, including issues
 
 The Helm chart and Kustomize manifests that install the ReSpawn remote controller in a customer's Kubernetes cluster, under its public name, the SignalFlag controller. It holds YAML and docs only. The controller's source, its image and the generated CRDs and RBAC come from `rerun`: `respawn/cmd/remote` and `respawn/config/remote/`.
 
-The controller manages two cluster-scoped kinds at `respawn.resim.io/v2alpha1`: a `Pool` is a customer's namespace for ReSim work, and a `PoolHandler` runs the service that picks up its pools' work.
+The controller manages two cluster-scoped kinds at `respawn.resim.io/v2alpha1`: a `Berth` is a customer's namespace for ReSim work, and a `Harbormaster` runs the service that picks up its berths' work.
 
 ## Commands
 
@@ -28,7 +28,7 @@ GitHub CLI: `git push -u origin <branch>`, then `gh pr create`; stack a large ch
 
 There are no unit tests. CI (`.github/workflows/ci.yml`) lints the chart with Helm 3 and 4, checks `kustomize/base` matches the chart, and runs `hack/kind-smoke.sh` on Kind clusters at Kubernetes 1.30 and 1.37.
 
-`hack/kind-smoke.sh` installs the chart in the current kubectl context, checks the CRD protection and the controller's permissions, then uninstalls it. With `CHECK_CONTROLLER=true` it also checks a Pool converges and what its ServiceAccounts can do. That needs a controller image, so CI turns it on only once `appVersion` names a released one. To run it locally with an image built from `rerun`:
+`hack/kind-smoke.sh` installs the chart in the current kubectl context, checks the CRD protection and the controller's permissions, then uninstalls it. With `CHECK_CONTROLLER=true` it also checks a Berth converges and what its ServiceAccounts can do. That needs a controller image, so CI turns it on only once `appVersion` names a released one. To run it locally with an image built from `rerun`:
 
 ```sh
 KIND_EXPERIMENTAL_PROVIDER=podman kind create cluster --name sfc
@@ -41,10 +41,10 @@ CHECK_CONTROLLER=true hack/kind-smoke.sh \
 
 - **Never edit `charts/signalflag-controller/generated/`.** Each controller release copies it from `rerun`. To change a CRD or a generated role, change the Go source in `rerun` and regenerate there.
 - The templates read the generated files with `.Files` and `fromYaml`, and set the namespace, labels and the CRDs' `helm.sh/resource-policy: keep`. They fail if a generated file holds a kind they don't expect.
-- The CRDs are templates, not files under `crds/`, so `helm upgrade` updates them. `helm uninstall` keeps them, and the `respawn-protect-crds` ValidatingAdmissionPolicy refuses to delete them: deleting the `Pool` CRD would delete every pool and its namespace.
-- Kubernetes can't create a `PoolHandler` in the same install that creates its CRD, so `poolHandler.enabled` is off by default.
-- The controller binds `resim-pool-worker`, `resim-pool-customer`, `resim-worker-<environment>`, `resim-poolhandler-discovery` and `resim-poolhandler-workload` by name. Don't rename them.
-- The controller can bind only the ClusterRoles this chart ships, and doesn't hold their permissions, so it can't grant more than the chart contains. The pool roles are generated in `rerun`. Only the two PoolHandler roles are written here, in `templates/poolhandler-roles.yaml`.
+- The CRDs are templates, not files under `crds/`, so `helm upgrade` updates them. `helm uninstall` keeps them, and the `respawn-protect-crds` ValidatingAdmissionPolicy refuses to delete them: deleting the `Berth` CRD would delete every berth and its namespace.
+- Kubernetes can't create a `Harbormaster` in the same install that creates its CRD, so `harbormaster.enabled` is off by default.
+- The controller binds `resim-berth-worker`, `resim-berth-customer`, `resim-worker-<environment>`, `resim-harbormaster-discovery` and `resim-harbormaster-workload` by name. Don't rename them.
+- The controller can bind only the ClusterRoles this chart ships, and doesn't hold their permissions, so it can't grant more than the chart contains. The berth roles are generated in `rerun`. Only the two Harbormaster roles are written here, in `templates/harbormaster-roles.yaml`.
 
 ## Directory map
 

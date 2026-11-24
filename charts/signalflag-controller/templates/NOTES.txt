@@ -1,12 +1,12 @@
 The SignalFlag controller is running in the {{ .Release.Namespace }} namespace, for the environments {{ join ", " .Values.environments }}.
 
-To add a pool, create a Pool with your ReSim org, environment and pool label, and the IAM roles for its worker
+To add a berth, create a Berth with your ReSim org, environment and pool label, and the IAM roles for its worker
 and customer ServiceAccounts:
 
-  kubectl apply -f my-pool.yaml
-  kubectl get pools
-{{- if not .Values.poolHandler.enabled }}
+  kubectl apply -f my-berth.yaml
+  kubectl get berths
+{{- if not .Values.harbormaster.enabled }}
 
-No PoolHandler is configured, so no pool picks up work yet. Create the credentials Secret, then set
-poolHandler.enabled=true with helm upgrade, or create a PoolHandler yourself.
+No Harbormaster is configured, so no berth picks up work yet. Create the credentials Secret, then set
+harbormaster.enabled=true with helm upgrade, or create a Harbormaster yourself.
 {{- end }}

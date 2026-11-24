@@ -1,18 +1,18 @@
 {{- /*
-The permissions of every PoolHandler's ServiceAccount. The controller binds resim-poolhandler-discovery
-cluster-wide, and resim-poolhandler-workload only in the namespaces of the pools a handler serves. They follow
+The permissions of every Harbormaster's ServiceAccount. The controller binds resim-harbormaster-discovery
+cluster-wide, and resim-harbormaster-workload only in the namespaces of the berths a handler serves. They follow
 what ReSim's scheduler needs to run workers, without its Karpenter, security group, RBAC, namespace creation and
-ServiceAccount grants. They're provisional until the PoolHandler service's design is final.
+ServiceAccount grants. They're provisional until the Harbormaster service's design is final.
 */}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: resim-poolhandler-discovery
+  name: resim-harbormaster-discovery
   labels:
     {{- include "signalflag-controller.labels" . | nindent 4 }}
 rules:
   - apiGroups: [respawn.resim.io]
-    resources: [pools]
+    resources: [berths]
     verbs: [get, list, watch]
   - apiGroups: [""]
     resources: [namespaces]
@@ -21,7 +21,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: resim-poolhandler-workload
+  name: resim-harbormaster-workload
   labels:
     {{- include "signalflag-controller.labels" . | nindent 4 }}
 rules:

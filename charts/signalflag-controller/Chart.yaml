@@ -1,6 +1,6 @@
 apiVersion: v2
 name: signalflag-controller
-description: Runs SignalFlag workers in your own Kubernetes cluster, in namespaces called pools.
+description: Runs SignalFlag workers in your own Kubernetes cluster, in namespaces called berths.
 type: application
 # The chart's version. Bump it with every change to the chart.
 version: 0.1.0
