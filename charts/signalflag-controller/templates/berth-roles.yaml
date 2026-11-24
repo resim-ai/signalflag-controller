@@ -1,10 +1,10 @@
 {{- /*
-The permissions of each pool's ServiceAccounts, generated from the controller source. A Pool binds
-resim-pool-worker and resim-pool-customer in its own namespace, and binds its worker ServiceAccount to the
+The permissions of each berth's ServiceAccounts, generated from the controller source. A Berth binds
+resim-berth-worker and resim-berth-customer in its own namespace, and binds its worker ServiceAccount to the
 resim-worker-<environment> ClusterRole for its environment. The controller can bind these roles but doesn't hold
 their permissions, so it can never grant more than this chart ships.
 */}}
-{{- range $obj := include "signalflag-controller.generated" (list $ "generated/rbac/pool_roles.yaml") | fromYamlArray }}
+{{- range $obj := include "signalflag-controller.generated" (list $ "generated/rbac/berth_roles.yaml") | fromYamlArray }}
 ---
 {{ toYaml $obj }}
 {{- end }}

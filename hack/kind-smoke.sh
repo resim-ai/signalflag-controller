@@ -2,7 +2,7 @@
 # Installs the chart into the current kubectl context, checks what it installed, then uninstalls it. Extra
 # arguments go to helm install, for example to set the controller image.
 #
-# With CHECK_CONTROLLER=true it also waits for the controller, and checks a Pool converges and its ServiceAccounts
+# With CHECK_CONTROLLER=true it also waits for the controller, and checks a Berth converges and its ServiceAccounts
 # get only what they need. That needs a controller image the cluster can pull.
 #
 # Usage: hack/kind-smoke.sh [helm install flags...]
@@ -42,7 +42,7 @@ eventually() {
 }
 
 crd_delete_refused() {
-  ! kubectl delete crd pools.respawn.resim.io --dry-run=server
+  ! kubectl delete crd berths.respawn.resim.io --dry-run=server
 }
 
 # A deletecollection, which kubectl only sends through --raw. The policy names it in its message.
@@ -54,8 +54,8 @@ bulk_crd_delete_refused() {
   [[ ${out} == *"Deleting every CustomResourceDefinition at once is blocked"* ]]
 }
 
-pool_ready() {
-  [[ $(kubectl get pool smoke -o jsonpath='{.status.conditions[?(@.type=="PoolReady")].status}') == True ]]
+berth_ready() {
+  [[ $(kubectl get berth smoke -o jsonpath='{.status.conditions[?(@.type=="BerthReady")].status}') == True ]]
 }
 
 namespace_gone() {
@@ -65,13 +65,13 @@ namespace_gone() {
 kubectl create namespace "${namespace}" --dry-run=client -o yaml | kubectl apply -f -
 helm install "${release}" "${chart}" --namespace "${namespace}" "$@"
 kubectl wait --for condition=established --timeout=60s \
-  crd/pools.respawn.resim.io crd/poolhandlers.respawn.resim.io crd/batches.respawn.resim.io
+  crd/berths.respawn.resim.io crd/harbormasters.respawn.resim.io crd/batches.respawn.resim.io
 
-eventually "the API server refuses to delete the Pool CRD" crd_delete_refused
+eventually "the API server refuses to delete the Berth CRD" crd_delete_refused
 eventually "the API server refuses to delete every CRD at once" bulk_crd_delete_refused
 
 # The controller binds the shipped roles and nothing else, and reads Secrets only in its own namespace.
-expect yes bind clusterrole/resim-pool-worker --as "${controller}"
+expect yes bind clusterrole/resim-berth-worker --as "${controller}"
 expect yes bind clusterrole/resim-worker-prod --as "${controller}"
 expect no bind clusterrole/cluster-admin --as "${controller}"
 expect no create roles --namespace default --as "${controller}"
@@ -82,9 +82,9 @@ expect no get secrets --namespace default --as "${controller}"
 
 if [[ ${CHECK_CONTROLLER:-false} == true ]]; then
   kubectl --namespace "${namespace}" rollout status deployment/signalflag-controller --timeout=180s
-  kubectl apply -f - <<'POOL'
+  kubectl apply -f - <<'BERTH'
 apiVersion: respawn.resim.io/v2alpha1
-kind: Pool
+kind: Berth
 metadata:
   name: smoke
 spec:
@@ -94,8 +94,8 @@ spec:
   identity:
     workerRoleARN: arn:aws:iam::123456789012:role/smoke-worker
     customerRoleARN: arn:aws:iam::123456789012:role/smoke-customer
-POOL
-  eventually "the Pool is ready" pool_ready
+BERTH
+  eventually "the Berth is ready" berth_ready
   worker=system:serviceaccount:smoke:worker
   customer=system:serviceaccount:smoke:customer
   expect yes get nodes --as "${worker}"
@@ -106,15 +106,15 @@ POOL
   expect no delete persistentvolumes --as "${worker}"
   expect yes list pods --namespace smoke --as "${customer}"
   expect no create pods --namespace smoke --as "${customer}"
-  kubectl delete pool smoke
-  eventually "the pool's namespace is deleted" namespace_gone
+  kubectl delete berth smoke
+  eventually "the berth's namespace is deleted" namespace_gone
 else
   echo "skipped: the controller checks, because CHECK_CONTROLLER isn't true"
 fi
 
 helm uninstall "${release}" --namespace "${namespace}" --wait
-kubectl get crd pools.respawn.resim.io >/dev/null || fail "helm uninstall deleted the Pool CRD"
-if kubectl get clusterrole resim-pool-worker >/dev/null 2>&1; then
-  fail "helm uninstall left resim-pool-worker behind"
+kubectl get crd berths.respawn.resim.io >/dev/null || fail "helm uninstall deleted the Berth CRD"
+if kubectl get clusterrole resim-berth-worker >/dev/null 2>&1; then
+  fail "helm uninstall left resim-berth-worker behind"
 fi
 echo "ok: uninstall kept the CRDs and removed the rest"

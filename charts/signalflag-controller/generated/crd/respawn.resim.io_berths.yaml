@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: pools.respawn.resim.io
+  name: berths.respawn.resim.io
 spec:
   group: respawn.resim.io
   names:
-    kind: Pool
-    listKind: PoolList
-    plural: pools
-    singular: pool
+    kind: Berth
+    listKind: BerthList
+    plural: berths
+    singular: berth
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -24,10 +24,10 @@ spec:
     - jsonPath: .spec.poolLabel
       name: Pool Label
       type: string
-    - jsonPath: .spec.handler
-      name: Handler
+    - jsonPath: .spec.harbormaster
+      name: Harbormaster
       type: string
-    - jsonPath: .status.conditions[?(@.type=="PoolReady")].status
+    - jsonPath: .status.conditions[?(@.type=="BerthReady")].status
       name: Ready
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -37,10 +37,10 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          Pool is a place in a customer's cluster where ReSim work runs. respawn gives
-          it a namespace named after the Pool, NetworkPolicies, and ServiceAccounts and
+          Berth is a place in a customer's cluster where ReSim work runs. respawn gives
+          it a namespace named after the Berth, NetworkPolicies, and ServiceAccounts and
           RBAC for the worker and customer containers. Everything it creates is owned
-          by the Pool and deleted with it.
+          by the Berth and deleted with it.
         properties:
           apiVersion:
             description: |-
@@ -60,27 +60,54 @@ spec:
           metadata:
             type: object
           spec:
-            description: PoolSpec defines the desired state of a Pool.
+            description: BerthSpec defines the desired state of a Berth.
             properties:
+              debug:
+                description: |-
+                  Debug gives a Kubernetes group access to the berth's namespace for
+                  debugging.
+                properties:
+                  group:
+                    description: |-
+                      Group is bound to the resim-berth-debug ClusterRole in the berth's
+                      namespace. In ReSim's clusters an EKS access entry maps the org's debug
+                      IAM role to it.
+                    maxLength: 256
+                    minLength: 1
+                    type: string
+                required:
+                - group
+                type: object
               environment:
                 description: |-
-                  Environment is the ReSim environment the pool serves, such as prod. It
+                  Environment is the ReSim environment the berth serves, such as prod. It
                   selects the resim-worker-<environment> ClusterRole that the install
                   bundle ships.
                 maxLength: 63
                 minLength: 1
                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
-              handler:
+              frog:
+                description: |-
+                  Frog runs ReSim's frog, which caches experience data in the berth's
+                  namespace.
+                properties:
+                  enabled:
+                    description: |-
+                      Enabled creates the frog ServiceAccount, annotated with the customer
+                      role, and binds the resim-berth-frog ClusterRole to it.
+                    type: boolean
+                type: object
+              harbormaster:
                 default: default
                 description: |-
-                  Handler names the PoolHandler that serves this pool. respawn puts it in
-                  the resim.io/handler label on the Pool and its namespace.
+                  Harbormaster names the Harbormaster that serves this Berth. respawn puts it in
+                  the resim.io/harbormaster label on the Berth and its namespace.
                 maxLength: 63
                 pattern: ^([A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?)?$
                 type: string
               identity:
-                description: Identity names the IAM roles the pool's pods run as.
+                description: Identity names the IAM roles the berth's pods run as.
                 properties:
                   customerRoleARN:
                     description: CustomerRoleARN is the IAM role for customer containers.
@@ -97,18 +124,51 @@ spec:
                 - workerRoleARN
                 type: object
               orgID:
-                description: OrgID is the ReSim org the pool runs work for.
+                description: OrgID is the ReSim org the berth runs work for.
                 minLength: 1
                 type: string
               poolLabel:
                 description: |-
-                  PoolLabel is the pool label ReSim routes this pool's work to. The
-                  PoolHandler polls the worker API for work with this label.
+                  PoolLabel is the pool label ReSim routes this berth's work to. The
+                  Harbormaster polls the worker API for work with this label.
                 minLength: 1
                 type: string
+              securityGroupPolicy:
+                description: |-
+                  SecurityGroupPolicy gives the berth's pods the environment's EC2 security
+                  group, through the VPC CNI's SecurityGroupPolicy.
+                properties:
+                  enabled:
+                    description: |-
+                      Enabled creates a SecurityGroupPolicy in the berth's namespace for the
+                      environment's security group.
+                    type: boolean
+                type: object
+              serviceAccountNames:
+                description: |-
+                  ServiceAccountNames overrides the names of the worker and customer
+                  ServiceAccounts, which default to worker and customer.
+                properties:
+                  customer:
+                    description: Customer is the customer ServiceAccount's name.
+                    maxLength: 253
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: frog is the frog ServiceAccount's name
+                      rule: self != 'frog'
+                  worker:
+                    description: Worker is the worker ServiceAccount's name.
+                    maxLength: 253
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: frog is the frog ServiceAccount's name
+                      rule: self != 'frog'
+                type: object
               skipNetworkPolicy:
                 description: |-
-                  SkipNetworkPolicy leaves the pool's namespace without NetworkPolicies,
+                  SkipNetworkPolicy leaves the berth's namespace without NetworkPolicies,
                   for clusters whose network plugin doesn't enforce them.
                 type: boolean
             required:
@@ -117,11 +177,16 @@ spec:
             - orgID
             - poolLabel
             type: object
+            x-kubernetes-validations:
+            - message: the worker and customer ServiceAccounts need different names
+              rule: '!has(self.serviceAccountNames) || (has(self.serviceAccountNames.worker)
+                ? self.serviceAccountNames.worker : ''worker'') != (has(self.serviceAccountNames.customer)
+                ? self.serviceAccountNames.customer : ''customer'')'
           status:
-            description: PoolStatus defines the observed state of a Pool.
+            description: BerthStatus defines the observed state of a Berth.
             properties:
               conditions:
-                description: Conditions store the status conditions of the Pool.
+                description: Conditions store the status conditions of the Berth.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -182,8 +247,8 @@ spec:
                   type: string
                 default: {}
                 description: |-
-                  Resources names the objects respawn created for the pool, such as its
-                  Namespace and ServiceAccounts. The PoolHandler reads them from here.
+                  Resources names the objects respawn created for the berth, such as its
+                  Namespace and ServiceAccounts. The Harbormaster reads them from here.
                 type: object
             required:
             - resources
@@ -193,7 +258,7 @@ spec:
         - spec
         type: object
         x-kubernetes-validations:
-        - message: metadata.name becomes the pool's namespace name, so it must be
+        - message: metadata.name becomes the berth's namespace name, so it must be
             a DNS-1123 label
           rule: self.metadata.name.size() <= 63 && self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
         - message: metadata.name must not be default or start with kube-

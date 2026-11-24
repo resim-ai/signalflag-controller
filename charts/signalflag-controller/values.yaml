@@ -1,6 +1,6 @@
-# The ReSim environments this cluster runs pools for. Most clusters need only prod. The chart ships one
+# The ReSim environments this cluster runs berths for. Most clusters need only prod. The chart ships one
 # resim-worker-<environment> ClusterRole for each, and lets the controller bind those roles and no others.
-# A Pool whose spec.environment isn't listed here waits until it is.
+# A Berth whose spec.environment isn't listed here waits until it is.
 environments:
   - prod
 
@@ -26,25 +26,25 @@ controller:
   tolerations: []
   affinity: {}
 
-# A PoolHandler polls ReSim for its pools' work and launches the workers. The chart can create one, which serves
-# every Pool whose spec.handler is its name.
+# A Harbormaster polls ReSim for its berths' work and launches the workers. The chart can create one, which serves
+# every Berth whose spec.harbormaster is its name.
 #
-# Kubernetes can't create a PoolHandler until its CRD exists, so on a first install leave this off and turn it
-# on with helm upgrade, or create the PoolHandler yourself.
-poolHandler:
+# Kubernetes can't create a Harbormaster until its CRD exists, so on a first install leave this off and turn it
+# on with helm upgrade, or create the Harbormaster yourself.
+harbormaster:
   enabled: false
   name: default
-  # The PoolHandler service's image. Required when enabled.
+  # The Harbormaster service's image. Required when enabled.
   image: ""
   # The ReSim worker API URL. Required when enabled.
   workerAPIURL: ""
-  # The Secret, in the release namespace, that holds the PoolHandler's ReSim API credentials.
+  # The Secret, in the release namespace, that holds the Harbormaster's ReSim API credentials.
   credentialsSecretName: resim-api-credentials
   replicas: 1
   resources: {}
 
 # A ValidatingAdmissionPolicy that refuses to delete the respawn.resim.io CRDs. Deleting a CRD deletes every
-# object of that kind, so deleting the Pool CRD would delete every pool and its namespace.
+# object of that kind, so deleting the Berth CRD would delete every berth and its namespace.
 protectCRDs:
   enabled: true
   # Also refuse a request that deletes every CRD in the cluster at once, a deletecollection, which would

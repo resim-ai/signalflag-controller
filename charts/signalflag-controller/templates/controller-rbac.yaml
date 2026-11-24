@@ -1,5 +1,5 @@
 {{- /*
-The controller's own permissions, generated from the controller source: a ClusterRole for pools and their
+The controller's own permissions, generated from the controller source: a ClusterRole for berths and their
 objects, and a Role in the release namespace for its Deployments, credential Secrets and leader election.
 */}}
 {{- $clusterRole := "" }}
